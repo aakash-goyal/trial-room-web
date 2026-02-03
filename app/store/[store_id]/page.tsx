@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseInitError } from '@/lib/supabase';
 import { resizeImage } from '@/lib/trial-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ export default function StorePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [storeName, setStoreName] = useState<string>('');
+  const [initError, setInitError] = useState<string | null>(supabaseInitError);
 
   const sessionCreatedRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
@@ -28,6 +29,12 @@ export default function StorePage() {
     sessionCreatedRef.current = true;
 
     async function initialize() {
+      if (!supabase) {
+        setInitError(supabaseInitError ?? 'Supabase client is not configured.');
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data: storeData } = await supabase
           .from('stores')
@@ -86,6 +93,11 @@ export default function StorePage() {
   };
 
   const handleStartTrial = async () => {
+    if (!supabase) {
+      setInitError(supabaseInitError ?? 'Supabase client is not configured.');
+      return;
+    }
+
     if (!selectedFile || !userIdRef.current) return;
 
     setUploading(true);
@@ -156,6 +168,20 @@ export default function StorePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (initError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md text-center space-y-3">
+          <h1 className="text-xl font-semibold text-gray-900">Store unavailable</h1>
+          <p className="text-gray-600">
+            {initError} Configure the Supabase environment variables in Vercel to enable
+            the demo store.
+          </p>
+        </div>
       </div>
     );
   }

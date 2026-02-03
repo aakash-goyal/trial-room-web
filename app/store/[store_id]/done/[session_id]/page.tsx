@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseInitError } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, RefreshCw } from 'lucide-react';
 
@@ -14,9 +14,16 @@ export default function DonePage() {
 
   const [loading, setLoading] = useState(true);
   const [finalImageUrl, setFinalImageUrl] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(supabaseInitError);
 
   useEffect(() => {
     async function loadFinalImage() {
+      if (!supabase) {
+        setInitError(supabaseInitError ?? 'Supabase client is not configured.');
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data: sessionData, error: sessionError } = await supabase
           .from('sessions')
@@ -65,6 +72,20 @@ export default function DonePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (initError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md text-center space-y-3">
+          <h1 className="text-xl font-semibold text-gray-900">Store unavailable</h1>
+          <p className="text-gray-600">
+            {initError} Configure the Supabase environment variables in Vercel to enable
+            the demo store.
+          </p>
+        </div>
       </div>
     );
   }

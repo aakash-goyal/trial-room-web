@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseInitError } from '@/lib/supabase';
 import { InventoryItem, OverlayState, getCategoryLabel } from '@/lib/trial-utils';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, Loader2, ThumbsUp } from 'lucide-react';
@@ -15,6 +15,7 @@ export default function TrialPage() {
 
   const [loading, setLoading] = useState(true);
   const [customerImagePath, setCustomerImagePath] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(supabaseInitError);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -69,6 +70,12 @@ export default function TrialPage() {
 
   useEffect(() => {
     async function initialize() {
+      if (!supabase) {
+        setInitError(supabaseInitError ?? 'Supabase client is not configured.');
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data: sessionData, error: sessionError } = await supabase
           .from('sessions')
@@ -151,6 +158,10 @@ export default function TrialPage() {
   }, []);
 
   const loadAndDrawImage = useCallback(async (imagePath: string) => {
+    if (!supabase) {
+      return;
+    }
+
     const { data, error } = await supabase.storage
       .from('trial-images')
       .download(imagePath);
@@ -192,6 +203,11 @@ export default function TrialPage() {
   const loadGarmentImage = useCallback(async (item: InventoryItem) => {
     setLoadingGarment(true);
     const imagePath = item.image_url;
+
+    if (!supabase) {
+      setLoadingGarment(false);
+      return;
+    }
 
     if (!imagePath) {
       setLoadingGarment(false);
@@ -423,6 +439,9 @@ export default function TrialPage() {
 
   const handleSaveFinal = useCallback(async () => {
     if (!sessionId || !customerImageRef.current || !garmentImageRef.current || !overlayRef.current) return;
+    if (!supabase) {
+      return;
+    }
 
     setSavingFinal(true);
 
@@ -498,6 +517,20 @@ export default function TrialPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (initError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md text-center space-y-3">
+          <h1 className="text-xl font-semibold text-gray-900">Store unavailable</h1>
+          <p className="text-gray-600">
+            {initError} Configure the Supabase environment variables in Vercel to enable
+            the demo store.
+          </p>
+        </div>
       </div>
     );
   }
@@ -620,9 +653,11 @@ function GarmentThumbnail({
   onSelect: (item: InventoryItem) => void;
 }) {
   const imagePath = item.image_url;
-  const { data } = supabase.storage
-    .from('inventory-images')
-    .getPublicUrl(imagePath || '');
+  const publicUrl = supabase
+    ? supabase.storage
+        .from('inventory-images')
+        .getPublicUrl(imagePath || '').data.publicUrl
+    : '';
 
   return (
     <button
@@ -634,7 +669,7 @@ function GarmentThumbnail({
       }`}
     >
       <img
-        src={data.publicUrl}
+        src={publicUrl}
         alt={item.name}
         className="w-full h-full object-cover bg-gray-100"
         loading="lazy"

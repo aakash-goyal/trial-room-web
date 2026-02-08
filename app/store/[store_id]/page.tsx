@@ -189,7 +189,7 @@ export default function StorePage() {
               <Input
                 type="file"
                 accept="image/*"
-                capture="environment"
+                //capture="environment"
                 onChange={handleFileChange}
                 className="hidden"
               />
@@ -211,7 +211,7 @@ export default function StorePage() {
                   <Input
                     type="file"
                     accept="image/*"
-                    capture="environment"
+                    //capture="environment"
                     onChange={handleFileChange}
                     className="hidden"
                   />

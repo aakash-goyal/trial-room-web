@@ -8,7 +8,9 @@ export default function Home() {
         textAlign: 'center',
       }}
     >
-      Start prompting.
+      Open your store trial room.
+
+      Reach out to Abhishek Kaushik for details.
     </div>
   );
 }
